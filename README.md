@@ -19,7 +19,7 @@ This project builds a cloud data platform that:
 
 ## Architecture Diagram
 
-![Architecture](docs/architecture.png)
+![Architecture](docs/architecture.jpg)
 
 **Explanation:**
 - Azure Data Factory orchestrates the ingestion pipeline from the on-prem SQL source
@@ -47,7 +47,7 @@ This project builds a cloud data platform that:
 
 ### ADF Pipeline
 
-![ADF Pipeline](docs/adf_pipeline.png)
+![ADF Pipeline](docs/adf_pipeline.jpg)
 
 This pipeline uses:
 - A `Lookup` activity to retrieve the list of tables to copy
