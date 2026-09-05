@@ -1,67 +1,86 @@
 # Azure End-to-End Data Pipeline
 
-Pipeline de données complet sur Azure, de l'ingestion à la visualisation, suivant l'architecture **Medallion** (Bronze → Silver → Gold). Le projet couvre l'orchestration (Azure Data Factory), la transformation (Databricks/PySpark), l'exposition analytique (Synapse Serverless SQL) et le reporting (Power BI), avec une gouvernance des accès basée sur Microsoft Entra ID et Unity Catalog.
+This repository contains a complete **end-to-end data engineering pipeline** built on Microsoft Azure. It demonstrates how to ingest, transform, store, analyze, and visualize data from an on-premises SQL database to interactive dashboards using the modern Azure stack, following the **Medallion architecture** (Bronze → Silver → Gold).
 
-## Architecture
+---
 
-```mermaid
-graph LR
-    classDef sqlStyle fill:#E1E1E1,stroke:#666,stroke-width:2px,color:#000;
-    classDef adfStyle fill:#0078D4,stroke:#004578,stroke-width:2px,color:#fff;
-    classDef databricksStyle fill:#FF3621,stroke:#B2220F,stroke-width:2px,color:#fff;
-    classDef synapseStyle fill:#00A4EF,stroke:#005A9E,stroke-width:2px,color:#fff;
-    classDef pbiStyle fill:#F2C811,stroke:#C79F00,stroke-width:2px,color:#000;
+## Project Overview
 
-    classDef bronzeStyle fill:#CD7F32,stroke:#8B4513,stroke-width:2px,color:#fff;
-    classDef silverStyle fill:#C0C0C0,stroke:#708090,stroke-width:2px,color:#000;
-    classDef goldStyle fill:#FFD700,stroke:#B8860B,stroke-width:2px,color:#000;
+This project builds a cloud data platform that:
 
-    classDef secStyle fill:#0078D4,stroke:#004578,stroke-width:1px,color:#fff;
-    classDef kvStyle fill:#7FBA00,stroke:#4B6F00,stroke-width:1px,color:#fff;
+1. Extracts data from an **On-Premises SQL Server** database
+2. Orchestrates ingestion with **Azure Data Factory**
+3. Stages raw data in **Azure Data Lake Storage Gen2** (Bronze layer)
+4. Transforms and cleans data using **Azure Databricks** (PySpark, Serverless Compute, Unity Catalog)
+5. Exposes analytics-ready data through **Azure Synapse Analytics** (Serverless SQL Pool)
+6. Delivers business insights via **Power BI** dashboards
 
-    subgraph OnPrem["On-Premises"]
-        SQL[On-Prem SQL Database]:::sqlStyle
-    end
+---
 
-    ADF[Azure Data Factory]:::adfStyle
+## Architecture Diagram
 
-    subgraph DataLake["Azure Data Lake Storage Gen2"]
-        direction LR
-        Bronze[(Bronze Layer)]:::bronzeStyle --> Silver[(Silver Layer)]:::silverStyle
-        Silver --> Gold[(Gold Layer)]:::goldStyle
-    end
+![Architecture](docs/architecture.png)
 
-    ADB[Azure Databricks]:::databricksStyle
-    ADB -. Process .-> DataLake
+**Explanation:**
+- Azure Data Factory orchestrates the ingestion pipeline from the on-prem SQL source
+- Data flows through the Medallion architecture (Bronze → Silver → Gold) in ADLS Gen2
+- Azure Databricks handles all transformation workflows on Serverless compute
+- Azure Synapse Analytics serves the Gold layer for analytical queries
+- Power BI connects to Synapse to visualize business insights
+- Microsoft Entra ID and Key Vault secure access across the platform
 
-    Synapse[Azure Synapse Analytics]:::synapseStyle
-    PBI[Power BI]:::pbiStyle
+---
 
-    subgraph Governance["Security & Governance"]
-        AAD[Microsoft Entra ID]:::secStyle
-        KV[Azure Key Vault]:::kvStyle
-    end
+## Pipeline Flow
 
-    SQL --> ADF
-    ADF --> Bronze
-    Gold --> Synapse
-    Synapse --> PBI
-```
+1. **Ingestion (Azure Data Factory)**
+   A parameterized pipeline (`Lookup` + `ForEach`) copies tables from the on-prem SQL Server into the *Bronze* layer of ADLS Gen2.
 
-## Stack technique
+2. **Transformation (Azure Databricks)**
+   A Databricks Job reads the Bronze data, normalizes date formats, and writes clean data to the *Silver* layer. A second Job harmonizes column names (snake_case) and writes the final *Gold* tables in Delta format.
 
-| Couche | Technologie |
-|---|---|
-| Source | SQL Server (on-premise) |
-| Orchestration | Azure Data Factory |
-| Stockage | Azure Data Lake Storage Gen2 (ADLS Gen2) |
-| Transformation | Azure Databricks (PySpark, Serverless Compute, Unity Catalog) |
-| Format de données | Delta Lake |
-| Exposition analytique | Azure Synapse Analytics (Serverless SQL Pool) |
-| Visualisation | Power BI |
-| Sécurité & Gouvernance | Microsoft Entra ID, RBAC, Unity Catalog External Locations |
+3. **Analytics (Azure Synapse)**
+   SQL views are dynamically created over the Gold layer using `OPENROWSET` with `FORMAT = 'DELTA'`, exposing analytics-ready data through Synapse Serverless SQL.
 
-## Structure du projet
+4. **Visualization (Power BI)**
+   Power BI connects directly to the Synapse Serverless SQL endpoint to build interactive dashboards.
+
+### ADF Pipeline
+
+![ADF Pipeline](docs/adf_pipeline.png)
+
+This pipeline uses:
+- A `Lookup` activity to retrieve the list of tables to copy
+- A `ForEach` loop with a `Copy Data` activity for ingestion
+- Two Databricks **Job** activities (Serverless-compatible) for the Bronze→Silver and Silver→Gold transformations
+
+---
+
+## Tech Stack
+
+- **Azure Data Factory** – orchestrates ingestion and scheduling
+- **Azure Data Lake Storage Gen2** – stores raw and processed datasets
+- **Azure Databricks** – scalable Spark transformations (Serverless Compute, Unity Catalog)
+- **Delta Lake** – storage format for the Silver and Gold layers
+- **Azure Synapse Analytics** – Serverless SQL pool for analytics
+- **Microsoft Entra ID & Azure Key Vault** – secure credentials and access governance
+- **Power BI** – interactive dashboards
+- **SQL Server** – on-premises source system
+
+---
+
+## Dataset
+
+This project uses the official Microsoft sample database:
+
+- **AdventureWorksLT** (Sample OLTP database)
+  https://learn.microsoft.com/en-us/sql/samples/adventureworks-install-configure
+
+AdventureWorksLT is a lightweight transactional sample database provided by Microsoft that simulates a manufacturing/retail company scenario.
+
+---
+
+## Project Structure
 
 ```
 azure-end-to-end-data-pipeline/
@@ -74,26 +93,62 @@ azure-end-to-end-data-pipeline/
 ├── synapse/
 │   └── create_gold_views.sql
 ├── docs/
-│   └── architecture.mermaid
+│   ├── architecture.png
+│   └── adf_pipeline.png
 └── .gitignore
 ```
 
-## Pipeline de données
+---
 
-1. **Ingestion (Bronze)** — Azure Data Factory copie les tables depuis SQL Server on-premise vers ADLS Gen2, via un pipeline paramétré (`Lookup` + `ForEach`).
-2. **Transformation (Silver)** — Un job Databricks (PySpark) lit les données brutes, normalise les formats de dates et nettoie les données.
-3. **Transformation (Gold)** — Un second job Databricks harmonise les noms de colonnes (snake_case) et écrit les données finales en format Delta, compatible avec Synapse Serverless SQL (protocole `minReaderVersion: 1`).
-4. **Exposition** — Des vues SQL sont créées dynamiquement sur Synapse Analytics (`OPENROWSET` + `FORMAT DELTA`) pour interroger directement les données Gold.
-5. **Visualisation** — Power BI se connecte au endpoint SQL Serverless de Synapse pour construire les tableaux de bord.
+## Setup Instructions
 
-## Défis techniques rencontrés et résolus
+### Prerequisites
 
-- **Quotas de calcul Azure** : migration des clusters classiques vers du compute **Serverless** pour s'affranchir des limitations de quota par région.
-- **Gouvernance des accès** : mise en place d'External Locations Unity Catalog avec Storage Credentials liés à un Access Connector (Managed Identity), en remplacement des mounts DBFS classiques (incompatibles avec le Serverless).
-- **Compatibilité inter-outils** : désactivation des *Deletion Vectors* Delta Lake à l'écriture pour garantir la lecture des tables Gold depuis Synapse Serverless SQL.
-- **Orchestration ADF/Databricks** : passage des activités "Notebook" classiques vers des activités "Job" Databricks, seules compatibles avec le compute Serverless dans Azure Data Factory.
+- Azure Subscription
+- Power BI Desktop
+- Access to a SQL Server instance (on-prem or Azure SQL)
 
-## Auteur
+### Deployment Steps
 
-**Bilal Khallabi** — Master Big Data & Intelligent Systems
+1. Provision Azure services: ADLS Gen2, Data Factory, Databricks, Synapse, Key Vault
+2. Configure the ADF pipeline for ingestion (`adf/copy_all_tables_pipeline.json`)
+3. Deploy the Databricks notebooks as Serverless Jobs (`notebooks/`)
+4. Run `synapse/create_gold_views.sql` to expose the Gold layer as SQL views
+5. Connect Power BI to the Synapse Serverless SQL endpoint and build reports
+
+---
+
+## Key Features
+
+- Medallion architecture for structured, incremental data refinement
+- Fully automated pipeline with parameterized ADF activities and a daily schedule trigger
+- Serverless compute throughout (Databricks + Synapse) — no cluster management, pay-per-use
+- Governed data access via Unity Catalog External Locations and Managed Identity Storage Credentials
+- Delta Lake tables written with cross-tool compatibility in mind (Synapse Serverless SQL support)
+
+---
+
+## Technical Challenges Solved
+
+- **Azure compute quotas** — migrated from classic clusters to **Serverless compute** to avoid regional VM quota limitations on a free-tier subscription.
+- **Access governance** — replaced legacy DBFS mounts (incompatible with Serverless) with **Unity Catalog External Locations** backed by a Storage Credential tied to an Access Connector (Managed Identity).
+- **Cross-tool Delta compatibility** — disabled **Deletion Vectors** at write time so that Gold tables written by Databricks (protocol v3/v7 by default) remain readable by Synapse Serverless SQL (which only supports protocol v1/v2).
+- **ADF/Databricks orchestration** — replaced classic "Notebook" activities with Databricks **Job** activities, the only activity type compatible with Serverless compute in Azure Data Factory pipelines.
+
+---
+
+## Future Enhancements
+
+- Real-time streaming ingestion (Event Hub / Kafka)
+- CI/CD with Azure DevOps or GitHub Actions
+- Automated data quality testing and monitoring
+- ML integration for predictive analytics
+
+---
+
+## Author
+
+**Bilal Khallabi**
+Data Engineering / Data Science — Master Big Data & Intelligent Systems
+
 [LinkedIn](https://linkedin.com/in/bilal-khallabi-0a1a8a315) · [GitHub](https://github.com/Bilal51002)
