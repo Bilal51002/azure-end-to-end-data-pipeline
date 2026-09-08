@@ -102,17 +102,16 @@ AdventureWorksLT is a lightweight transactional sample database provided by Micr
 ```
 azure-end-to-end-data-pipeline/
 ├── README.md
-├── notebooks/
-│   ├── bronze_to_silver.py
-│   └── silver_to_gold.py
-├── adf/
-│   └── copy_all_tables_pipeline.json
-├── synapse/
-│   └── create_gold_views.sql
-├── docs/
-│   ├── architecture.png
-│   └── adf_pipeline.png
-└── .gitignore
+├── .gitignore
+├── bronze_to_silver.py
+├── silver_to_gold.py
+├── copy_all_tables_pipeline.json
+├── create_gold_views.sql
+├── Azure AdventureWorks Sales Dashboard.pbix
+└── docs/
+    ├── architecture.jpg
+    ├── adf_pipeline.jpg
+    └── Azure AdventureWorks Sales Dashboard.jpeg
 ```
 
 ---
