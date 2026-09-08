@@ -14,9 +14,6 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 
-# Power BI (fichiers lourds/binaires, à héberger ailleurs si besoin)
-*.pbix
-
 # OS
 .DS_Store
 Thumbs.db

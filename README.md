@@ -56,6 +56,23 @@ This pipeline uses:
 
 ---
 
+## Power BI Dashboard Preview
+
+Below is a screenshot of the final Power BI dashboard showing key business metrics:
+
+![Power BI Dashboard](docs/Azure%20AdventureWorks%20Sales%20Dashboard.jpeg)
+
+The dashboard includes:
+- KPI cards for Total Sales, Total Products, Average Order Value, and Total Orders
+- A Top Products by Sales bar chart
+- A Sales by Category pie chart
+- A Sales Progress gauge chart
+- Interactive filters by Product Category and City
+
+The `.pbix` file is available at the root of this repository for anyone who wants to explore or reuse the report: [Azure AdventureWorks Sales Dashboard.pbix](Azure%20AdventureWorks%20Sales%20Dashboard.pbix)
+
+---
+
 ## Tech Stack
 
 - **Azure Data Factory** – orchestrates ingestion and scheduling
